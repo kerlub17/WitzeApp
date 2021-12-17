@@ -6,9 +6,14 @@ import asyncio
 import json
 import logging
 import websockets
+import random
+from datetime import datetime
 
 logging.basicConfig()
 
+datafile = open("jokes.csv", "r+")
+jokes = datafile.read().split("#")
+JOKE = {"Q":jokes[int(datetime.now().strftime('%H'))].split(";")[1],"A":jokes[int(datetime.now().strftime('%H'))].split(";")[2]}
 STATE = {"value": 0}
 
 USERS = set()
@@ -17,15 +22,18 @@ USERS = set()
 def state_event():
     return json.dumps({"type": "state", **STATE})
 
-
 def users_event():
     return json.dumps({"type": "users", "count": len(USERS)})
+
+def display_joke():
+    return json.dumps({"type": "joke", "joke": JOKE})
 
 
 async def counter(websocket, path):
     try:
         # Register user
         USERS.add(websocket)
+        websockets.broadcast(USERS, display_joke())
         websockets.broadcast(USERS, users_event())
         # Send current state to user
         await websocket.send(state_event())
